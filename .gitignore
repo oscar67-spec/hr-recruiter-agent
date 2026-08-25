@@ -1,0 +1,29 @@
+# Secrets
+.env
+.env.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node
+node_modules/
+cdk.out/
+
+# Lambda build artifacts
+slack_lambda/package/
+slack_lambda/*.zip
+
+# AgentCore CLI state
+agentcore/.cli/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

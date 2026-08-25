@@ -7,7 +7,17 @@
     "agentcore:created-by": "agentcore-cli",
     "agentcore:project-name": "HRRecruiterAgentNew"
   },
-  "runtimes": [],
+  "runtimes": [
+    {
+      "name": "HRRecruiterAgent",
+      "build": "CodeZip",
+      "entrypoint": "main.py",
+      "codeLocation": "app/HRRecruiterAgent/",
+      "runtimeVersion": "PYTHON_3_14",
+      "networkMode": "PUBLIC",
+      "protocol": "HTTP"
+    }
+  ],
   "memories": [],
   "knowledgeBases": [],
   "credentials": [],

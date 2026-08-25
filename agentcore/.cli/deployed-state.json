@@ -1,3 +1,17 @@
 {
-  "targets": {}
+  "targets": {
+    "default": {
+      "resources": {
+        "runtimes": {
+          "HRRecruiterAgent": {
+            "runtimeId": "HRRecruiterAgentNew_HRRecruiterAgent-L54zkOCNQx",
+            "runtimeArn": "arn:aws:bedrock-agentcore:us-east-1:416291742983:runtime/HRRecruiterAgentNew_HRRecruiterAgent-L54zkOCNQx",
+            "roleArn": "arn:aws:iam::416291742983:role/AgentCore-HRRecruiterAgen-ApplicationAgentHRRecruit-tQkdqNSB0BO1"
+          }
+        },
+        "stackName": "AgentCore-HRRecruiterAgentNew-default",
+        "deployHash": "ed0c39712c330586"
+      }
+    }
+  }
 }
