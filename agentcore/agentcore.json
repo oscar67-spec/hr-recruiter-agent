@@ -18,7 +18,22 @@
       "protocol": "HTTP"
     }
   ],
-  "memories": [],
+  "memories": [
+    {
+      "name": "HRRecruiterMemory",
+      "eventExpiryDuration": 90,
+      "strategies": [
+        {
+          "type": "SEMANTIC",
+          "description": "Stores facts about candidates, job roles, screening outcomes, and recruiter preferences so the agent can recall them across sessions"
+        },
+        {
+          "type": "SUMMARIZATION",
+          "description": "Creates rolling summaries of hiring pipeline conversations for quick recall in future sessions"
+        }
+      ]
+    }
+  ],
   "knowledgeBases": [],
   "credentials": [],
   "evaluators": [],

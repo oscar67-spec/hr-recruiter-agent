@@ -17,6 +17,12 @@ dependencies = [
     "slack-bolt >= 1.18.0",
     "slack-sdk >= 3.27.0",
     "requests >= 2.31.0",
+    # Google integrations
+    "google-api-python-client >= 2.100.0",
+    "google-auth-httplib2 >= 0.2.0",
+    "google-auth-oauthlib >= 1.1.0",
+    # PDF resume parsing
+    "pypdf >= 4.0.0",
 ]
 
 [tool.hatch.build.targets.wheel]
