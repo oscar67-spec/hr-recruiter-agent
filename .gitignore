@@ -27,3 +27,4 @@ agentcore/.cli/
 # OS
 .DS_Store
 Thumbs.db
+setup/credentials.json
