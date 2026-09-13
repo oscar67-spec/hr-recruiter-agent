@@ -27,71 +27,63 @@ A hiring manager talks to the agent in Slack like a colleague. The agent handles
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        User Interfaces                          │
-│                                                                 │
-│   Slack Bot (ASK-ME workspace)     Recruiter Dashboard (Vercel) │
-│   @HR Agent <message>              dashboard-six-pied-36.vercel │
-└──────────────────────┬──────────────────────┬───────────────────┘
-                       │                      │
-                       ▼                      ▼
-┌──────────────────────────────┐   ┌──────────────────────────────┐
-│   AWS Lambda (Slack Layer)   │   │   Next.js 16 Dashboard       │
-│                              │   │                              │
-│   hr-slack-receiver          │   │   /dashboard  (overview)     │
-│   hr-slack-worker            │   │   /dashboard/jobs            │
-│   API Gateway                │   │   /dashboard/candidates      │
-└──────────────┬───────────────┘   │   /dashboard/pipeline        │
-               │                   └──────────────┬───────────────┘
-               ▼                                  │
-┌──────────────────────────────────────────────────▼───────────────┐
-│              AWS Bedrock AgentCore Runtime (us-east-1)           │
-│                                                                   │
-│   ┌─────────────────────────────────────────────────────────┐    │
-│   │              Strands Agent  (Nova Pro)                  │    │
-│   │                                                         │    │
-│   │  Core HR Tools (7)        Google Tools (10)             │    │
-│   │  ├── generate_job_posting ├── send_email_now            │    │
-│   │  ├── save_job_posting     ├── list_unread_emails        │    │
-│   │  ├── list_job_postings    ├── schedule_interview        │    │
-│   │  ├── screen_resume        ├── check_availability        │    │
-│   │  ├── save_candidate       ├── read_resume_from_drive    │    │
-│   │  ├── list_candidates      ├── save_document_to_drive    │    │
-│   │  └── draft_interview_email├── list_drive_files          │    │
-│   │                           ├── create_job_application_form│   │
-│   │  Zoho Recruit (7)         ├── list_form_responses       │    │
-│   │  ├── list_zoho_jobs       └── read_sheet                │    │
-│   │  ├── get_zoho_candidates                                │    │
-│   │  ├── create_zoho_job      Workable (3)                  │    │
-│   │  ├── create_zoho_candidate├── list_workable_jobs        │    │
-│   │  ├── associate_candidate  ├── get_workable_candidates   │    │
-│   │  ├── update_zoho_candidate└── update_workable_candidate │    │
-│   │  └── close_zoho_job                                     │    │
-│   └─────────────────────────────────────────────────────────┘    │
-│                              │                                    │
-│              ┌───────────────┼───────────────┐                   │
-│              ▼               ▼               ▼                   │
-│   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│   │  S3 Bucket   │  │  AgentCore   │  │  Bedrock     │          │
-│   │  (storage)   │  │   Memory     │  │  Nova Pro    │          │
-│   │              │  │  (SEMANTIC + │  │  (LLM)       │          │
-│   │  jobs/       │  │  SUMMARIZE)  │  │              │          │
-│   │  candidates/ │  │              │  │              │          │
-│   └──────────────┘  └──────────────┘  └──────────────┘          │
-└──────────────────────────────────────────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              ▼               ▼               ▼
-┌─────────────────┐  ┌────────────────┐  ┌──────────────────┐
-│  Zoho Recruit   │  │   Workable     │  │  Google APIs     │
-│  (ATS)          │  │   (ATS)        │  │                  │
-│  Full CRUD      │  │  Read + Update │  │  Gmail           │
-│                 │  │                │  │  Google Drive    │
-│                 │  │                │  │  Google Calendar │
-│                 │  │                │  │  Google Forms    │
-│                 │  │                │  │  Google Sheets   │
-└─────────────────┘  └────────────────┘  └──────────────────┘
+```mermaid
+flowchart TD
+    subgraph UI["User Interfaces"]
+        SLACK["💬 Slack\n@ASK-ME mention or DM"]
+        DASH["📊 Recruiter Dashboard\ndashboard-six-pied-36.vercel.app"]
+    end
+
+    subgraph LAMBDA["AWS Lambda — Slack Layer"]
+        RCV["hr-slack-receiver\nAPI Gateway · signature verify"]
+        WRK["hr-slack-worker\nAsync invocation"]
+        RCV -->|fire & forget| WRK
+    end
+
+    subgraph OAUTH["One-Click Install"]
+        OA["hr-slack-oauth\nOAuth 2.0 flow"]
+        DDB["DynamoDB\nhr-slack-tokens\nper-workspace bot tokens"]
+        OA -->|store token| DDB
+        WRK -->|lookup token| DDB
+    end
+
+    subgraph CORE["AWS Bedrock AgentCore Runtime · us-east-1"]
+        direction TB
+        AGENT["🤖 Strands Agent\nAmazon Nova Pro"]
+
+        subgraph TOOLS["31 Tools"]
+            T1["Core HR · 7\ngenerate · screen · save · list · draft"]
+            T2["Google · 10\nGmail · Drive · Calendar · Forms · Sheets"]
+            T3["Zoho Recruit · 7\nCRUD jobs & candidates"]
+            T4["Workable · 3\nread + update candidates"]
+        end
+
+        AGENT --> TOOLS
+
+        S3["🗄️ S3 Bucket\nhr-recruiter-agent-data\njobs/ candidates/"]
+        MEM["🧠 AgentCore Memory\nSemantic + Summarization"]
+        AGENT --> S3
+        AGENT --> MEM
+    end
+
+    subgraph EXT["External Integrations"]
+        ZOHO["Zoho Recruit\nFull CRUD"]
+        WORKABLE["Workable\nRead + Update"]
+        GOOGLE["Google APIs\nGmail · Drive\nCalendar · Forms · Sheets"]
+    end
+
+    SLACK -->|event| RCV
+    DASH -->|reads S3| S3
+    WRK -->|invoke| AGENT
+    T3 --> ZOHO
+    T4 --> WORKABLE
+    T2 --> GOOGLE
+
+    style CORE fill:#fff8f0,stroke:#ff9500
+    style UI fill:#f0f8ff,stroke:#0071e3
+    style LAMBDA fill:#f5fff5,stroke:#34c759
+    style EXT fill:#fff0f5,stroke:#ff3b30
+    style OAUTH fill:#f5f0ff,stroke:#8B1A1A
 ```
 
 ---
