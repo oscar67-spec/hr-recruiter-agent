@@ -8,7 +8,7 @@ import os
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
 BEDROCK_MODEL_ID = os.environ.get(
     "BEDROCK_MODEL_ID",
-    "amazon.nova-lite-v1:0",  # cheapest Nova model - very low cost
+    "amazon.nova-pro-v1:0",  # Nova Pro — much better output quality
 )
 
 # S3 storage

@@ -107,7 +107,19 @@ def invoke(payload: dict) -> dict:
     # -- 2. Run the agent (session-scoped, stateful within session) -----------
     agent = _get_session_agent(session_id)
     result = agent(augmented_message)
-    response_text = str(result.message)
+
+    # Extract plain text from the Strands message object.
+    # result.message is a dict: {'role': 'assistant', 'content': [{'text': '...'}], ...}
+    msg = result.message
+    if isinstance(msg, dict):
+        content = msg.get("content", [])
+        if isinstance(content, list) and content:
+            first = content[0]
+            response_text = first.get("text", str(first)) if isinstance(first, dict) else str(first)
+        else:
+            response_text = str(msg)
+    else:
+        response_text = str(msg)
 
     # -- 3. Persist this turn to memory ---------------------------------------
     # Fire-and-forget: errors are swallowed inside save_turn.

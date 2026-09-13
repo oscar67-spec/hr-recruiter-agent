@@ -15,7 +15,17 @@
       "codeLocation": "app/HRRecruiterAgent/",
       "runtimeVersion": "PYTHON_3_14",
       "networkMode": "PUBLIC",
-      "protocol": "HTTP"
+      "protocol": "HTTP",
+      "envVars": [
+        {"name": "GOOGLE_CLIENT_ID", "value": "REPLACE_WITH_GOOGLE_CLIENT_ID"},
+        {"name": "GOOGLE_CLIENT_SECRET", "value": "REPLACE_WITH_GOOGLE_CLIENT_SECRET"},
+        {"name": "GOOGLE_REFRESH_TOKEN", "value": "REPLACE_WITH_GOOGLE_REFRESH_TOKEN"},
+        {"name": "ZOHO_CLIENT_ID", "value": "REPLACE_WITH_ZOHO_CLIENT_ID"},
+        {"name": "ZOHO_CLIENT_SECRET", "value": "REPLACE_WITH_ZOHO_CLIENT_SECRET"},
+        {"name": "ZOHO_REFRESH_TOKEN", "value": "REPLACE_WITH_ZOHO_REFRESH_TOKEN"},
+        {"name": "WORKABLE_API_KEY", "value": "REPLACE_WITH_WORKABLE_API_KEY"},
+        {"name": "WORKABLE_SUBDOMAIN", "value": "REPLACE_WITH_WORKABLE_SUBDOMAIN"}
+      ]
     }
   ],
   "memories": [

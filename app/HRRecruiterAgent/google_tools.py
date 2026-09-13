@@ -81,7 +81,7 @@ def _google_creds():
             "https://www.googleapis.com/auth/gmail.readonly",
             "https://www.googleapis.com/auth/drive",
             "https://www.googleapis.com/auth/calendar",
-            "https://www.googleapis.com/auth/forms.responses.readonly",
+            "https://www.googleapis.com/auth/forms.body",
             "https://www.googleapis.com/auth/spreadsheets.readonly",
         ],
     )
@@ -634,6 +634,105 @@ def _sheets():
 # ===========================================================================
 # GOOGLE FORMS TOOLS
 # ===========================================================================
+
+@tool
+def create_job_application_form(
+    job_title: str,
+    job_description: str = "",
+    custom_questions: list[str] | None = None,
+) -> str:
+    """
+    Create a Google Form for job applications.
+    Returns the form URL for sharing with candidates.
+
+    Args:
+        job_title: Job title (e.g. "Senior Software Engineer")
+        job_description: Optional job description to include in the form
+        custom_questions: Optional list of additional questions to add
+                         (defaults to standard application questions)
+
+    Returns:
+        Form URL and form ID for tracking responses.
+    """
+    try:
+        svc = _forms()
+
+        # Standard application questions
+        standard_questions = [
+            "Full Name",
+            "Email Address",
+            "Phone Number",
+            "LinkedIn Profile URL (optional)",
+            "Resume/CV (Google Drive link or attachment URL)",
+            "Years of relevant experience",
+            "Why are you interested in this role?",
+            "What makes you a great fit for this position?",
+        ]
+
+        all_questions = standard_questions + (custom_questions or [])
+
+        # Step 1: Create form — title and documentTitle can only be set at creation
+        form = svc.forms().create(
+            body={"info": {
+                "title": f"Application for {job_title}",
+                "documentTitle": f"{job_title} Application Form",
+            }}
+        ).execute()
+        form_id = form["formId"]
+
+        # Step 2: Build batchUpdate requests
+        batch_requests = []
+
+        # Set description via updateFormInfo if provided
+        if job_description:
+            batch_requests.append({
+                "updateFormInfo": {
+                    "info": {"description": job_description},
+                    "updateMask": "description",
+                }
+            })
+
+        # Add questions
+        for idx, question in enumerate(all_questions):
+            is_paragraph = "why" in question.lower() or "what makes" in question.lower()
+            batch_requests.append({
+                "createItem": {
+                    "item": {
+                        "title": question,
+                        "questionItem": {
+                            "question": {
+                                "required": "optional" not in question.lower(),
+                                "textQuestion": {
+                                    "paragraph": is_paragraph,
+                                },
+                            }
+                        },
+                    },
+                    "location": {"index": idx},
+                }
+            })
+
+        # Step 3: Apply all updates in one batch call
+        svc.forms().batchUpdate(
+            formId=form_id,
+            body={"requests": batch_requests}
+        ).execute()
+
+        form_url = f"https://docs.google.com/forms/d/{form_id}/viewform"
+
+        return (
+            f"Job application form created successfully!\n"
+            f"Job     : {job_title}\n"
+            f"Form URL: {form_url}\n"
+            f"Form ID : {form_id}\n"
+            f"Questions: {len(all_questions)}\n\n"
+            f"Share this URL with candidates to collect applications."
+        )
+    except RuntimeError as exc:
+        return f"Google Forms not configured: {exc}"
+    except Exception as exc:  # noqa: BLE001
+        return f"Error creating Google Form: {exc}"
+
 
 @tool
 def list_form_responses(

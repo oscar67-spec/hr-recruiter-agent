@@ -6,10 +6,10 @@ Supports two platforms:
   Zoho Recruit  — recruit.zoho.com/recruit/v2
   Workable      — {subdomain}.workable.com/spi/v3
 
-Each platform exposes:
-  - list jobs / open roles
-  - list applications / candidates
-  - update application status (advance, reject, add notes)
+Each platform exposes full CRUD:
+  - list / create / close jobs
+  - list / create / update candidates
+  - push AI screening results back
 
 Setup:
   Add the relevant keys to app/HRRecruiterAgent/.env:
@@ -116,16 +116,20 @@ def list_zoho_jobs(status: str = "open") -> str:
         List of job openings with IDs, titles, departments, and location.
     """
     try:
-        params = {"criteria": f"(Job_Status:equals:{status})"}
         resp = requests.get(
-            f"{ZOHO_BASE}/JobOpenings/search",
+            f"{ZOHO_BASE}/JobOpenings",
             headers=_zoho_headers(),
-            params=params,
+            params={"per_page": 50},
             timeout=15,
         )
         resp.raise_for_status()
         data = resp.json()
-        jobs = data.get("data", [])
+        all_jobs = data.get("data", [])
+        # Filter client-side by status (case-insensitive)
+        jobs = [
+            j for j in all_jobs
+            if j.get("Job_Status", "").lower() == status.lower()
+        ] if status else all_jobs
 
         if not jobs:
             return f"No {status} job openings found in Zoho Recruit."
@@ -278,10 +282,260 @@ def update_zoho_candidate(
     except Exception as exc:  # noqa: BLE001
         return f"Error updating Zoho candidate: {exc}"
 
+@tool
+def create_zoho_job(
+    job_title: str,
+    department: str,
+    description: str,
+    location: str = "Remote",
+    employment_type: str = "Full-time",
+    num_openings: int = 1,
+) -> str:
+    """
+    Create a new job opening in Zoho Recruit.
+    Use this when a hiring manager asks to post a role in Zoho.
+
+    Args:
+        job_title: Title of the job (e.g. "Senior Software Engineer")
+        department: Department hiring for the role (e.g. "Engineering")
+        description: Full job description text
+        location: Work location (default "Remote")
+        employment_type: e.g. "Full-time", "Part-time", "Contract"
+        num_openings: Number of openings (default 1)
+
+    Returns:
+        Confirmation with the new Zoho Job ID.
+    """
+    try:
+        data = {
+            "data": [{
+                "Job_Opening_Name": job_title,
+                "Department":       department,
+                "Job_Description":  description,
+                "No_of_Positions":  num_openings,
+                "Job_Type":         employment_type,
+                "Remote_Job":       location.lower() == "remote",
+                "Job_Status":       "open",
+                # "My company" client — required by Zoho Recruit for all job openings
+                "Client_Name": {"id": "873152000000586332", "name": "My company"},
+            }]
+        }
+        resp = requests.post(
+            f"{ZOHO_BASE}/JobOpenings",
+            headers=_zoho_headers(),
+            json=data,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        result = resp.json()
+
+        # Zoho returns HTTP 202 even for errors — check the body
+        record = result.get("data", [{}])[0]
+        if record.get("status") == "error":
+            code = record.get("code", "UNKNOWN")
+            msg  = record.get("message", "Unknown error")
+            details = record.get("details", {})
+            return f"Zoho rejected the job creation: {code} — {msg} {details}"
+
+        job_id = record.get("details", {}).get("id", "N/A")
+        return (
+            f"Job opening created in Zoho Recruit.\n"
+            f"Title  : {job_title}\n"
+            f"Dept   : {department}\n"
+            f"Zoho ID: {job_id}"
+        )
+    except RuntimeError as exc:
+        return f"Zoho Recruit not configured: {exc}"
+    except requests.HTTPError as exc:
+        return f"Zoho API error: {exc.response.status_code} — {exc.response.text[:200]}"
+    except Exception as exc:  # noqa: BLE001
+        return f"Error creating Zoho job: {exc}"
+
+
+@tool
+def create_zoho_candidate(
+    full_name: str,
+    email: str,
+    phone: str = "",
+    resume_summary: str = "",
+    experience_years: int = 0,
+    current_employer: str = "",
+    skills: str = "",
+) -> str:
+    """
+    Add a new candidate record to Zoho Recruit.
+    Use this to push a candidate discovered outside Zoho (e.g. from email or Drive)
+    into the ATS.
+
+    Args:
+        full_name: Candidate's full name
+        email: Candidate's email address
+        phone: Candidate's phone number (optional)
+        resume_summary: Brief summary of the candidate's background
+        experience_years: Years of relevant experience
+        current_employer: Current or most recent employer
+        skills: Comma-separated key skills
+
+    Returns:
+        Confirmation with the new Zoho Candidate ID.
+    """
+    try:
+        data = {
+            "data": [{
+                "Full_Name":            full_name,
+                "Email":                email,
+                "Mobile":               phone,
+                "Experience_in_Years":  experience_years,
+                "Current_Employer":     current_employer,
+                "Skill_Set":            skills,
+                "Candidate_Summary":    resume_summary,
+                "Candidate_Status":     "New",
+            }]
+        }
+        resp = requests.post(
+            f"{ZOHO_BASE}/Candidates",
+            headers=_zoho_headers(),
+            json=data,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        result = resp.json()
+        candidate_id = result.get("data", [{}])[0].get("details", {}).get("id", "N/A")
+        return (
+            f"Candidate created in Zoho Recruit.\n"
+            f"Name      : {full_name}\n"
+            f"Email     : {email}\n"
+            f"Zoho ID   : {candidate_id}"
+        )
+    except RuntimeError as exc:
+        return f"Zoho Recruit not configured: {exc}"
+    except requests.HTTPError as exc:
+        return f"Zoho API error: {exc.response.status_code} — {exc.response.text[:200]}"
+    except Exception as exc:  # noqa: BLE001
+        return f"Error creating Zoho candidate: {exc}"
+
+
+@tool
+def close_zoho_job(job_id: str) -> str:
+    """
+    Close a job opening in Zoho Recruit (mark it as filled or cancelled).
+    Use this when a role has been filled or is no longer active.
+
+    Args:
+        job_id: Zoho Job Opening ID to close (from list_zoho_jobs)
+
+    Returns:
+        Confirmation that the job was closed.
+    """
+    try:
+        data = {"data": [{"id": job_id, "Job_Status": "closed"}]}
+        resp = requests.put(
+            f"{ZOHO_BASE}/JobOpenings",
+            headers=_zoho_headers(),
+            json=data,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        return f"Job {job_id} has been closed in Zoho Recruit."
+    except RuntimeError as exc:
+        return f"Zoho Recruit not configured: {exc}"
+    except requests.HTTPError as exc:
+        return f"Zoho API error: {exc.response.status_code} — {exc.response.text[:200]}"
+    except Exception as exc:  # noqa: BLE001
+        return f"Error closing Zoho job: {exc}"
+
+
+@tool
+def associate_candidate_to_job(candidate_id: str, job_id: str) -> str:
+    """
+    Associate an existing candidate to a job opening in Zoho Recruit.
+    Use this after creating a candidate to link them to the role they applied for.
+
+    Args:
+        candidate_id: Zoho Candidate ID
+        job_id: Zoho Job Opening ID
+
+    Returns:
+        Confirmation of the association.
+    """
+    try:
+        data = {"data": [{"id": candidate_id}]}
+        resp = requests.post(
+            f"{ZOHO_BASE}/JobOpenings/{job_id}/Candidates/associate",
+            headers=_zoho_headers(),
+            json=data,
+            timeout=15,
+        )
+        if resp.ok:
+            return f"Candidate {candidate_id} associated with job {job_id} in Zoho Recruit."
+        return f"Association failed: {resp.status_code} — {resp.text[:200]}"
+    except RuntimeError as exc:
+        return f"Zoho Recruit not configured: {exc}"
+    except Exception as exc:  # noqa: BLE001
+        return f"Error associating candidate to job: {exc}"
+
 
 # ===========================================================================
 # WORKABLE TOOLS
 # ===========================================================================
+
+@tool
+def create_workable_job(
+    job_title: str,
+    department: str,
+    description: str,
+    location: str = "Remote",
+    employment_type: str = "full_time",
+) -> str:
+    """
+    Create a new job posting in Workable.
+
+    Args:
+        job_title: Title of the job (e.g. "Senior Software Engineer")
+        department: Department name (e.g. "Engineering")
+        description: Full job description text (HTML or plain text)
+        location: Work location city or "Remote"
+        employment_type: One of: full_time, part_time, contract, temporary, other
+
+    Returns:
+        Confirmation with the new Workable job shortcode.
+    """
+    try:
+        data = {
+            "job": {
+                "title":       job_title,
+                "department":  department,
+                "description": description,
+                "employment_type": employment_type,
+                "location": {
+                    "location_str": location,
+                    "telecommuting": location.lower() == "remote",
+                },
+                "state": "published",
+            }
+        }
+        resp = requests.post(
+            f"{_workable_base()}/jobs",
+            headers=_workable_headers(),
+            json=data,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        job = resp.json().get("job", {})
+        shortcode = job.get("shortcode", "N/A")
+        return (
+            f"Job posted to Workable.\n"
+            f"Title    : {job_title}\n"
+            f"Shortcode: {shortcode}\n"
+            f"State    : published"
+        )
+    except RuntimeError as exc:
+        return f"Workable not configured: {exc}"
+    except requests.HTTPError as exc:
+        return f"Workable API error: {exc.response.status_code} — {exc.response.text[:200]}"
+    except Exception as exc:  # noqa: BLE001
+        return f"Error creating Workable job: {exc}"
+
 
 @tool
 def list_workable_jobs(state: str = "published") -> str:
