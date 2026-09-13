@@ -50,44 +50,58 @@ Build and deploy an AI-powered HR and recruitment assistant for the **Agents for
     - Running at http://localhost:3000
     - **NOT yet deployed to Vercel** (next step)
 
-### ✅ COMPLETED (September 10, 2026)
-13. **Google Forms Creation Tool** - Added capability to create job application forms
-    - Updated Google OAuth scope from `forms.responses.readonly` to `forms.body`
-    - Re-ran OAuth flow, got new refresh token with expanded permissions
-    - Added `create_job_application_form` tool to google_tools.py
-    - Tool creates Google Forms with 8 standard application questions + custom questions
-    - Registered tool in agent.py (agent now has 24 tools total)
-    - Updated system prompt to include form creation capability
-    - Deployment attempted (still propagating to live runtime)
-14. **AWS Token Management** - Refreshed AWS SSO credentials
-    - AWS Account: 416291742983 (chidiadioscar3 / info@abiaskillsmarket.com)
-    - All AWS console access links documented
-15. **Hackathon Preparation Started** - Agents for Humans Hackathon
-    - Deadline: September 14, 2026 @ 5:00pm PDT (4 days remaining)
-    - Track: Professional Agents
-    - Prize pool: $40,000 ($5k-10k per track)
-    - Requirements reviewed: demo video, MIT/Apache license, README, AWS Builder ID
-16. **Testing Phase Initiated** - Slack bot tested successfully
-    - Job posting generation working ✅
-    - Agent responding to @mentions in Slack ✅
-    - Ready to test ATS integrations (Zoho Recruit + Workable)
+## 📍 Current State
 
-### ⏳ IN PROGRESS (September 10, 2026)
-- Testing complete agent workflow via Slack
-- Pulling real data from Zoho Recruit and Workable
-- Verifying data sync to S3
-- Dashboard verification with real data
-- Google Forms tool deployment (waiting for runtime update)
+### ✅ COMPLETED (September 12, 2026)
+1. **Agent Code** - 31 tools fully implemented and deployed
+2. **AWS Deployment** - Live on Bedrock AgentCore in us-east-1
+3. **S3 Storage** - Bucket created, permanent IAM credentials (no more SSO expiry)
+4. **Slack Integration** - HR Agent bot live in ASK-ME workspace
+5. **Google Integrations** - Gmail, Drive, Calendar, Forms, Sheets (all fixed and working)
+6. **ATS Integrations** - Zoho Recruit (full CRUD) + Workable (read + update)
+7. **Dashboard** - Rebuilt with Apple design system, deployed to Vercel
+8. **AWS SSO Fixed** - Permanent IAM users for both dashboard and agentcore deploy
+9. **Agent Fixes** - Raw JSON output bug fixed, model upgraded to Nova Pro
+10. **Zoho Fixed** - list_zoho_jobs fixed, create_zoho_job fixed (Client_Name required field)
+11. **Google Forms Fixed** - create_job_application_form fully working
+12. **System Prompt Rewritten** - Agent is now fully autonomous, no passive suggestions
+13. **GitHub** - All code pushed, secrets removed, MIT license added
+14. **README** - Full README with ASCII architecture diagram pushed to GitHub
 
-### ❌ NOT STARTED (September 10, 2026)
-- Deploy dashboard to Vercel
-- Generate sample demo data (pulling from ATS instead)
-- Record 5-minute demo video for hackathon
-- Add MIT/Apache license to GitHub repo
-- Create README with architecture diagram
-- Get AWS Builder ID
-- Submit to Devpost hackathon portal
-- (Optional) Publish build story on builder.aws.com for bonus points
+### ⏳ TODO (September 13, 2026 session):
+- Replace ASCII architecture diagram in README with proper Mermaid visual diagram
+- Screenshot/export the diagram for Devpost submission
+- Rigorous testing of all 31 tools via Slack
+- Record 5-minute demo video
+- Get AWS Builder ID (email: info@abiaskillsmarket.com)
+- Publish build story on builder.aws.com (bonus points)
+- Submit to Devpost before September 14, 5pm PDT
+
+### Testing Checklist (via Slack):
+- [x] Job generation working
+- [x] Create job in Zoho Recruit
+- [x] Google Forms creation
+- [x] Gmail send
+- [x] Gmail list unread
+- [x] Google Calendar check availability
+- [x] Google Calendar schedule interview
+- [ ] Zoho: list jobs
+- [ ] Zoho: get candidates
+- [ ] Zoho: create candidate
+- [ ] Zoho: update candidate
+- [ ] Zoho: close job
+- [ ] Workable: list jobs
+- [ ] Workable: get candidates
+- [ ] Workable: update candidate
+- [ ] Google Drive: list files
+- [ ] Google Drive: save document
+- [ ] Google Drive: read resume
+- [ ] S3: save job posting
+- [ ] S3: list job postings
+- [ ] S3: save candidate
+- [ ] S3: list candidates
+- [ ] End-to-end: pull candidates from Zoho → screen → push results back
+- [ ] Dashboard: verify data shows up correctly
 
 ---
 
