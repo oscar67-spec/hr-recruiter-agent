@@ -1,6 +1,8 @@
-# HR Recruiter Agent
+# ASK-ME — AI Recruiting Agent for Slack
 
-An autonomous AI-powered HR and recruitment assistant built for the **Agents for Humans Hackathon** on AWS Bedrock AgentCore. It manages the full hiring pipeline end-to-end through natural conversation — from writing job descriptions to screening resumes, scheduling interviews, and syncing results back to your ATS.
+An autonomous AI recruiting agent built on **AWS Bedrock AgentCore** with the **Strands Agents SDK**. ASK-ME manages the full hiring pipeline end-to-end through natural conversation in Slack — from writing job descriptions to screening resumes, scheduling interviews, and syncing results back to your ATS.
+
+> **Not a harness. Not a template.** Every tool is hand-coded Python — 31 custom functions calling real external APIs with full auth flows, error handling, and response parsing. Deployed to AgentCore Runtime as a CodeZip build.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 [![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock%20AgentCore-orange)](https://aws.amazon.com/bedrock/)
